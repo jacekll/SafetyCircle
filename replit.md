@@ -26,6 +26,12 @@ Preferred communication style: Simple, everyday language.
   - Groups screen: Dedicated group management and statistics
   - Alerts screen: Emergency alert history and help information
 - Improved navigation with proper routing and back buttons
+- Added GPS location sharing feature:
+  - Emergency alerts now include GPS coordinates when available
+  - Location permission requests handled gracefully
+  - Maps integration for viewing alert locations
+  - Real-time location accuracy display in SOS modal
+  - Location links in alert history for emergency events
 
 ## System Architecture
 
@@ -59,6 +65,8 @@ Preferred communication style: Simple, everyday language.
 - **Groups**: Emergency response groups with unique join tokens
 - **Group Members**: Many-to-many relationship between users and groups
 - **Alerts**: Emergency messages with type classification (emergency/resolved)
+  - Location fields: latitude, longitude, locationAccuracy for GPS coordinates
+  - Real-time broadcasting of location data to group members
 
 ### Real-time Features
 - WebSocket server mounted on `/ws` endpoint

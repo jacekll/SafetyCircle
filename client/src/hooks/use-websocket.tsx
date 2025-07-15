@@ -40,9 +40,10 @@ export function useWebSocket(sessionId: string | null) {
           const alert = message.alert;
           
           if (alert.type === 'emergency') {
+            const locationText = alert.latitude && alert.longitude ? ' with location' : '';
             toast({
               title: "🚨 EMERGENCY ALERT",
-              description: `${alert.senderName} from ${alert.groupName}`,
+              description: `${alert.senderName} from ${alert.groupName}${locationText}`,
               variant: "destructive",
             });
           }

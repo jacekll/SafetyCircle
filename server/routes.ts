@@ -217,13 +217,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'You must be a member of at least one group to send alerts' });
       }
 
+      // Extract location data from request body
+      const { latitude, longitude, accuracy } = req.body;
+
       // Create alerts for all user's groups
       for (const group of userGroups) {
         const alert = await storage.createAlert({
           groupId: group.id,
           senderId: user.id,
           message: 'EMERGENCY ALERT',
-          type: 'emergency'
+          type: 'emergency',
+          latitude: latitude ? String(latitude) : null,
+          longitude: longitude ? String(longitude) : null,
+          locationAccuracy: accuracy ? String(accuracy) : null,
         });
 
         // Broadcast to group members
@@ -234,6 +240,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           senderName: user.nickname,
           message: alert.message,
           type: alert.type,
+          latitude: alert.latitude,
+          longitude: alert.longitude,
+          locationAccuracy: alert.locationAccuracy,
           sentAt: alert.sentAt
         });
       }

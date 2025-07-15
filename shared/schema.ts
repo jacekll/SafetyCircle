@@ -29,6 +29,9 @@ export const alerts = pgTable("alerts", {
   senderId: integer("sender_id").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull(), // 'emergency' | 'resolved'
+  latitude: text("latitude"), // GPS coordinates
+  longitude: text("longitude"), // GPS coordinates
+  locationAccuracy: text("location_accuracy"), // GPS accuracy in meters
   sentAt: timestamp("sent_at").defaultNow().notNull(),
 });
 
@@ -89,3 +92,9 @@ export type AlertWithDetails = Alert & {
   senderName: string;
   groupName: string;
 };
+
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}

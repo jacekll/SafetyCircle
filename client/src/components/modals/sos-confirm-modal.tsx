@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from '@/hooks/use-location';
 import { type GroupWithDetails } from '@shared/schema';
 import {
   Dialog,
@@ -9,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, MapPin, Loader2 } from 'lucide-react';
 
 interface SOSConfirmModalProps {
   open: boolean;
@@ -21,16 +22,35 @@ interface SOSConfirmModalProps {
 export function SOSConfirmModal({ open, onOpenChange, groups, sessionId }: SOSConfirmModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { location, isLoading: locationLoading, getCurrentLocation } = useLocation();
 
   const sendAlertMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/alerts/emergency', {});
+      let locationData = location;
+      
+      // Try to get current location if we don't have it
+      if (!locationData) {
+        try {
+          locationData = await getCurrentLocation();
+        } catch (error) {
+          console.log('Could not get location:', error);
+          // Continue without location
+        }
+      }
+
+      const alertData = locationData ? {
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        accuracy: locationData.accuracy,
+      } : {};
+
+      const response = await apiRequest('POST', '/api/alerts/emergency', alertData);
       return response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "🚨 Emergency Alert Sent",
-        description: `Alert sent to ${data.groupCount} group(s)`,
+        description: `Alert sent to ${data.groupCount} group(s)${location ? ' with location' : ''}`,
         variant: "destructive",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
@@ -76,6 +96,30 @@ export function SOSConfirmModal({ open, onOpenChange, groups, sessionId }: SOSCo
             ) : (
               <div className="text-gray-500">No groups joined yet</div>
             )}
+          </div>
+          
+          {/* Location Status */}
+          <div className="mt-3 pt-3 border-t border-red-200">
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-4 h-4 text-red-600" />
+              <div className="text-sm">
+                {locationLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Getting location...</span>
+                  </div>
+                ) : location ? (
+                  <div>
+                    <span className="font-medium text-green-700">Location available</span>
+                    <div className="text-xs text-gray-600">
+                      Accuracy: ±{Math.round(location.accuracy || 0)}m
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-gray-600">Location will be requested</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

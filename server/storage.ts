@@ -171,7 +171,10 @@ export class MemStorage implements IStorage {
     const id = this.currentAlertId++;
     const alert: Alert = { 
       ...insertAlert, 
-      id, 
+      id,
+      latitude: insertAlert.latitude || null,
+      longitude: insertAlert.longitude || null,
+      locationAccuracy: insertAlert.locationAccuracy || null,
       sentAt: new Date() 
     };
     this.alerts.set(id, alert);

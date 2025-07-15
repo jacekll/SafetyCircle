@@ -1,12 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { type AlertWithDetails } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, MapPin, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
 interface RecentAlertsProps {
   sessionId: string;
+}
+
+function formatLocationLink(latitude: string | null, longitude: string | null): string | null {
+  if (!latitude || !longitude) return null;
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 export function RecentAlerts({ sessionId }: RecentAlertsProps) {
@@ -74,6 +79,22 @@ export function RecentAlerts({ sessionId }: RecentAlertsProps) {
                 }`}>
                   {alert.type === 'emergency' ? 'EMERGENCY ALERT SENT' : 'ALERT RESOLVED'}
                 </div>
+                
+                {/* Location Information */}
+                {alert.type === 'emergency' && alert.latitude && alert.longitude && (
+                  <div className="mt-2">
+                    <a
+                      href={formatLocationLink(alert.latitude, alert.longitude)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span>View Location</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           ))}
