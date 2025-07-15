@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a real-time emergency alert system built with React, Express, and WebSockets. The application allows users to create and join groups, send emergency alerts to group members, and receive real-time notifications. It features a modern UI built with shadcn/ui components and uses Drizzle ORM with PostgreSQL for data persistence.
+This is a fully functional real-time emergency alert system built with React, Express, and WebSockets. The application allows users to create and join groups using 8-character tokens, send emergency alerts to group members, and receive real-time notifications. Users can participate without traditional email signup - only requiring a nickname. The system features a modern mobile-responsive UI built with shadcn/ui components and uses in-memory storage for fast prototyping.
 
 ## User Preferences
 
@@ -28,10 +28,10 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: In-memory storage with session IDs
 
 ### Data Storage
-- **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Storage**: In-memory storage implementation (MemStorage class)
 - **Schema Location**: Shared schema definitions in `/shared/schema.ts`
-- **Migrations**: Managed through Drizzle Kit
-- **Connection**: Serverless connection via Neon Database
+- **Session Management**: localStorage-based session IDs for anonymous users
+- **Data Persistence**: Memory-based for fast development and testing
 
 ## Key Components
 
