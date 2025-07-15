@@ -21,6 +21,11 @@ Preferred communication style: Simple, everyday language.
 - Resolved SOS modal flashing issue by adding loading state checks
 - Removed unstable animate-pulse class from dialog components
 - Successfully tested complete workflow: group creation → emergency alerts → real-time notifications
+- Reorganized app into cleaner multi-screen structure:
+  - Main screen: Focused on SOS button with navigation cards
+  - Groups screen: Dedicated group management and statistics
+  - Alerts screen: Emergency alert history and help information
+- Improved navigation with proper routing and back buttons
 
 ## System Architecture
 
@@ -61,11 +66,17 @@ Preferred communication style: Simple, everyday language.
 - Live alert broadcasting to group members
 - Connection state management with automatic reconnection
 
-### UI Components
+### UI Structure
+- **Main Screen**: Focused SOS button with navigation to other screens
+- **Groups Screen**: Complete group management with join/create functionality
+- **Alerts Screen**: Emergency alert history and help information
+- **Navigation**: Seamless routing between screens with back buttons
+
+### Core Components
 - **SOS Button**: Large emergency button with visual feedback
-- **Group Status**: Display user's groups and member counts
-- **Recent Alerts**: Timeline of emergency notifications
-- **Modal System**: Create/join group workflows
+- **Group Management**: Create groups, join with tokens, view statistics
+- **Alert History**: Timeline of emergency notifications with real-time updates
+- **Modal System**: Join group workflows and emergency confirmation
 - **Toast Notifications**: Real-time alert notifications
 
 ## Data Flow
