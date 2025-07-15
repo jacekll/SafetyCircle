@@ -38,7 +38,7 @@ export default function Home() {
   });
 
   // Get user's groups
-  const { data: groupsData } = useQuery({
+  const { data: groupsData, isLoading: groupsLoading } = useQuery({
     queryKey: ['/api/groups'],
     enabled: !!sessionId,
   });
@@ -50,6 +50,11 @@ export default function Home() {
   }, []);
 
   const handleSOSAlert = () => {
+    // Don't proceed if groups are still loading
+    if (groupsLoading) {
+      return;
+    }
+    
     if (groups.length === 0) {
       setShowJoinModal(true);
       return;

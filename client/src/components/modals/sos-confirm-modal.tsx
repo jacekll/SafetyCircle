@@ -51,7 +51,7 @@ export function SOSConfirmModal({ open, onOpenChange, groups, sessionId }: SOSCo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-auto animate-pulse">
+      <DialogContent className="max-w-sm mx-auto">
         <DialogHeader className="text-center">
           <div className="w-20 h-20 bg-emergency rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
             <AlertTriangle className="text-white text-2xl" />
