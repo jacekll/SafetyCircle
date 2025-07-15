@@ -1,9 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type AlertWithDetails } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, MapPin, ExternalLink } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { AlertTriangle, CheckCircle, MapPin, ExternalLink, MoreVertical, Archive, MessageCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { ArchiveConfirmModal } from '@/components/modals/archive-confirm-modal';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
 interface RecentAlertsProps {
   sessionId: string;
@@ -15,12 +26,79 @@ function formatLocationLink(latitude: string | null, longitude: string | null): 
 }
 
 export function RecentAlerts({ sessionId }: RecentAlertsProps) {
+  const [selectedAlert, setSelectedAlert] = useState<AlertWithDetails | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { triggerGeneral } = useHapticFeedback();
+
   const { data: alertsData, isLoading } = useQuery({
     queryKey: ['/api/alerts'],
     enabled: !!sessionId,
   });
 
+  const answerMutation = useMutation({
+    mutationFn: async (alertId: number) => {
+      return await apiRequest('POST', `/api/alerts/${alertId}/answer`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
+      toast({
+        title: "Alert answered",
+        description: "You've marked this alert as answered.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to answer alert",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (alertId: number) => {
+      return await apiRequest('POST', `/api/alerts/${alertId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/alerts'] });
+      toast({
+        title: "Alert archived",
+        description: "The alert has been moved to your archive.",
+      });
+      setShowArchiveModal(false);
+      setSelectedAlert(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to archive alert",
+        variant: "destructive",
+      });
+    },
+  });
+
   const alerts: AlertWithDetails[] = alertsData?.alerts || [];
+
+  const handleAnswerClick = (alert: AlertWithDetails) => {
+    // Trigger haptic feedback for user action
+    triggerGeneral({ intensity: 'light' });
+    answerMutation.mutate(alert.id);
+  };
+
+  const handleArchiveClick = (alert: AlertWithDetails) => {
+    // Trigger haptic feedback for user action
+    triggerGeneral({ intensity: 'light' });
+    setSelectedAlert(alert);
+    setShowArchiveModal(true);
+  };
+
+  const handleArchiveConfirm = () => {
+    if (selectedAlert) {
+      archiveMutation.mutate(selectedAlert.id);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -69,8 +147,29 @@ export function RecentAlerts({ sessionId }: RecentAlertsProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-gray-900">{alert.senderName}</div>
-                  <div className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(alert.sentAt), { addSuffix: true })}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(alert.sentAt), { addSuffix: true })}
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {alert.type === 'emergency' && !alert.answeredBy && (
+                          <DropdownMenuItem onClick={() => handleAnswerClick(alert)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Mark as Answered
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleArchiveClick(alert)}>
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 mt-1">{alert.groupName}</div>
@@ -79,6 +178,13 @@ export function RecentAlerts({ sessionId }: RecentAlertsProps) {
                 }`}>
                   {alert.type === 'emergency' ? 'EMERGENCY ALERT SENT' : 'ALERT RESOLVED'}
                 </div>
+                
+                {/* Answer Status */}
+                {alert.answeredBy && alert.answeredByName && (
+                  <div className="mt-2 text-xs text-green-600 font-medium">
+                    ✓ Answered by {alert.answeredByName}
+                  </div>
+                )}
                 
                 {/* Location Information */}
                 {alert.type === 'emergency' && alert.latitude && alert.longitude && (
@@ -109,6 +215,14 @@ export function RecentAlerts({ sessionId }: RecentAlertsProps) {
           </p>
         </div>
       )}
+      
+      <ArchiveConfirmModal
+        open={showArchiveModal}
+        onOpenChange={setShowArchiveModal}
+        alert={selectedAlert}
+        onConfirm={handleArchiveConfirm}
+        isLoading={archiveMutation.isPending}
+      />
     </div>
   );
 }

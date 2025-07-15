@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   nickname: text("nickname").notNull(),
   sessionId: text("session_id").notNull().unique(),
+  pushSubscription: text("push_subscription"),
 });
 
 export const groups = pgTable("groups", {
@@ -32,7 +33,27 @@ export const alerts = pgTable("alerts", {
   latitude: text("latitude"), // GPS coordinates
   longitude: text("longitude"), // GPS coordinates
   locationAccuracy: text("location_accuracy"), // GPS accuracy in meters
+  answeredBy: integer("answered_by"), // User ID who marked as answered
+  answeredAt: timestamp("answered_at"), // When it was marked as answered
   sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export const archivedAlerts = pgTable("archived_alerts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  alertId: integer("alert_id").notNull(),
+  archivedAt: timestamp("archived_at").defaultNow().notNull(),
+});
+
+export const emergencyContacts = pgTable("emergency_contacts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  email: text("email"),
+  relationship: text("relationship"), // 'family', 'friend', 'colleague', 'other'
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Insert schemas
@@ -54,6 +75,23 @@ export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
 export const insertAlertSchema = createInsertSchema(alerts).omit({
   id: true,
   sentAt: true,
+});
+
+export const insertEmergencyContactSchema = createInsertSchema(emergencyContacts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertArchivedAlertSchema = createInsertSchema(archivedAlerts).omit({
+  id: true,
+  archivedAt: true,
+});
+
+export const createEmergencyContactSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name too long"),
+  phoneNumber: z.string().min(1, "Phone number is required").max(20, "Phone number too long"),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  relationship: z.enum(["family", "friend", "colleague", "other"]).optional(),
 });
 
 export const joinGroupSchema = z.object({
@@ -82,15 +120,23 @@ export type Alert = typeof alerts.$inferSelect;
 export type JoinGroupRequest = z.infer<typeof joinGroupSchema>;
 export type CreateGroupRequest = z.infer<typeof createGroupSchema>;
 
+export type InsertEmergencyContact = z.infer<typeof insertEmergencyContactSchema>;
+export type EmergencyContact = typeof emergencyContacts.$inferSelect;
+export type CreateEmergencyContactRequest = z.infer<typeof createEmergencyContactSchema>;
+
+export type InsertArchivedAlert = z.infer<typeof insertArchivedAlertSchema>;
+export type ArchivedAlert = typeof archivedAlerts.$inferSelect;
+
 // Extended types for API responses
 export type GroupWithDetails = Group & {
   memberCount: number;
-  isAdmin: boolean;
+  token: string; // Always included for all group members
 };
 
 export type AlertWithDetails = Alert & {
   senderName: string;
   groupName: string;
+  answeredByName?: string;
 };
 
 export interface LocationData {

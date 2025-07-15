@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import webpush from 'web-push';
 import { storage } from "./storage";
 import { 
   joinGroupSchema, 
@@ -13,6 +14,28 @@ interface WebSocketWithUser extends WebSocket {
   userId?: number;
   sessionId?: string;
 }
+
+// VAPID configuration for push notifications
+if (!process.env.VAPID_PUBLIC_KEY) {
+  throw new Error("VAPID_PUBLIC_KEY environment variable is required");
+}
+if (!process.env.VAPID_PRIVATE_KEY) {
+  throw new Error("VAPID_PRIVATE_KEY environment variable is required");
+}
+if (!process.env.VAPID_EMAIL) {
+  throw new Error("VAPID_EMAIL environment variable is required");
+}
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL = process.env.VAPID_EMAIL;
+
+// Configure web-push
+webpush.setVapidDetails(
+  VAPID_EMAIL,
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -57,19 +80,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to broadcast alerts to group members
-  async function broadcastAlert(groupId: number, alert: any) {
+  async function broadcastAlert(groupId: number, message: any) {
     const groupMembers = await storage.getGroupMembers(groupId);
     
     for (const member of groupMembers) {
+      // Send WebSocket notification if user is online
       const memberWs = userConnections.get(member.id);
       if (memberWs && memberWs.readyState === WebSocket.OPEN) {
-        memberWs.send(JSON.stringify({
-          type: 'alert',
-          alert
-        }));
+        memberWs.send(JSON.stringify(message));
+      }
+      
+      // Send push notification if user has subscription and is not currently online
+      if (member.pushSubscription && (!memberWs || memberWs.readyState !== WebSocket.OPEN)) {
+        try {
+          console.log(`Sending push notification to user ${member.id} (${member.nickname})`);
+          const pushSubscription = JSON.parse(member.pushSubscription);
+          
+          // Only send push notifications for emergency alerts
+          if (message.type === 'alert' && message.alert?.type === 'emergency') {
+            const notificationPayload = JSON.stringify({
+              title: "🚨 EMERGENCY ALERT",
+              body: `${message.alert.senderName} from ${message.alert.groupName}${message.alert.latitude && message.alert.longitude ? ' (with location)' : ''}`,
+              icon: '/icon-192x192.svg',
+              badge: '/icon-192x192.svg',
+              tag: 'emergency-alert',
+              requireInteraction: true,
+              vibrate: [200, 100, 200, 100, 200],
+              data: {
+                alertId: message.alert.id,
+                groupId: message.alert.groupId,
+                latitude: message.alert.latitude,
+                longitude: message.alert.longitude,
+                url: '/'
+              }
+            });
+
+            const result = await webpush.sendNotification(pushSubscription, notificationPayload);
+            console.log('Push notification sent successfully to user:', member.id, 'Result:', result);
+          }
+        } catch (error: any) {
+
+
+          console.error('Failed to send push notification to user:', member.id, {
+            error: error.message,
+            statusCode: error.statusCode,
+            body: error.body,
+            stack: error.stack
+          });
+          
+          // If push subscription is invalid, remove it
+          if (error.statusCode === 410 || error.statusCode === 413) {
+            console.log('Removing invalid push subscription for user:', member.id);
+            await storage.updateUserPushSubscription(member.sessionId, null);
+          }
+        }
+      } else {
+        console.log(`User ${member.id} (${member.nickname}): WebSocket=${!!memberWs && memberWs.readyState === WebSocket.OPEN ? 'connected' : 'disconnected'}, PushSub=${!!member.pushSubscription ? 'yes' : 'no'}`);
       }
     }
   }
+
+  // Get VAPID public key for push notifications
+  app.get('/api/push/vapid-key', (req, res) => {
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+  });
+
+  // Test push notification endpoint for debugging
+  app.post('/api/push/test', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      if (!user.pushSubscription) {
+        return res.status(400).json({ message: 'No push subscription found for user' });
+      }
+
+      const pushSubscription = JSON.parse(user.pushSubscription);
+      const testPayload = JSON.stringify({
+        title: "🧪 Test Notification",
+        body: "This is a test push notification from your emergency alert app",
+        icon: '/icon-192x192.svg',
+        badge: '/icon-192x192.svg',
+        tag: 'test-notification',
+        requireInteraction: false,
+        data: { test: true }
+      });
+
+      await webpush.sendNotification(pushSubscription, testPayload);
+      console.log('Test push notification sent to user:', user.id);
+      res.json({ message: 'Test notification sent successfully' });
+    } catch (error: any) {
+      console.error('Failed to send test push notification:', error);
+      res.status(500).json({ 
+        message: 'Failed to send test notification', 
+        error: error.message 
+      });
+    }
+  });
 
   // Get or create user by session
   app.post('/api/auth', async (req, res) => {
@@ -87,6 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ user, sessionId });
     } catch (error) {
+      console.error('Authentication failed:', error);
       res.status(500).json({ message: 'Authentication failed' });
     }
   });
@@ -198,6 +313,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get group members
+  app.get('/api/groups/:id/members', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const groupId = parseInt(req.params.id);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ message: 'Invalid group ID' });
+      }
+
+      // Check if user is a member of the group
+      const isUserInGroup = await storage.isUserInGroup(user.id, groupId);
+      if (!isUserInGroup) {
+        return res.status(403).json({ message: 'Not a member of this group' });
+      }
+
+      const members = await storage.getGroupMembers(groupId);
+      res.json({ members });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch group members' });
+    }
+  });
+
   // Send emergency alert
   app.post('/api/alerts/emergency', async (req, res) => {
     try {
@@ -234,16 +380,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Broadcast to group members
         await broadcastAlert(group.id, {
-          id: alert.id,
-          groupId: group.id,
-          groupName: group.name,
-          senderName: user.nickname,
-          message: alert.message,
-          type: alert.type,
-          latitude: alert.latitude,
-          longitude: alert.longitude,
-          locationAccuracy: alert.locationAccuracy,
-          sentAt: alert.sentAt
+          type: 'alert',
+          alert: {
+            id: alert.id,
+            groupId: group.id,
+            groupName: group.name,
+            senderName: user.nickname,
+            message: alert.message,
+            type: alert.type,
+            latitude: alert.latitude,
+            longitude: alert.longitude,
+            locationAccuracy: alert.locationAccuracy,
+            sentAt: alert.sentAt
+          }
         });
       }
 
@@ -273,6 +422,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ alerts });
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch alerts' });
+    }
+  });
+
+  // Mark an alert as answered
+  app.post('/api/alerts/:alertId/answer', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const alertId = parseInt(req.params.alertId);
+      if (isNaN(alertId)) {
+        return res.status(400).json({ message: 'Invalid alert ID' });
+      }
+
+      // Check if alert exists and user has access to it
+      const userGroups = await storage.getUserGroups(user.id);
+      const userGroupIds = userGroups.map(group => group.id);
+      const alert = await storage.getAlert(alertId);
+      
+      if (!alert || !userGroupIds.includes(alert.groupId)) {
+        return res.status(404).json({ message: 'Alert not found or access denied' });
+      }
+
+      // Check if alert is already answered
+      if (alert.answeredBy) {
+        return res.status(400).json({ message: 'Alert already answered' });
+      }
+
+      // Mark alert as answered - this is the first answer
+      const answeredAlert = await storage.markAlertAnswered(user.id, alertId);
+      
+      // Broadcast the first answer notification to all group members
+      await broadcastAlert(alert.groupId, {
+        type: 'alert-answered',
+        alert: {
+          ...answeredAlert,
+          senderName: (await storage.getUser(answeredAlert.senderId))?.nickname,
+          groupName: (await storage.getGroup(answeredAlert.groupId))?.name,
+          answeredByName: user.nickname
+        }
+      });
+
+      res.json({ success: true, alert: answeredAlert });
+    } catch (error) {
+      console.error('Error answering alert:', error);
+      res.status(500).json({ message: 'Failed to answer alert' });
+    }
+  });
+
+  // Archive an alert
+  app.post('/api/alerts/:alertId/archive', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const alertId = parseInt(req.params.alertId);
+      if (isNaN(alertId)) {
+        return res.status(400).json({ message: 'Invalid alert ID' });
+      }
+
+      // Check if alert exists and user has access to it
+      const userGroups = await storage.getUserGroups(user.id);
+      const userGroupIds = userGroups.map(group => group.id);
+      const alert = await storage.getAlert(alertId);
+      
+      if (!alert || !userGroupIds.includes(alert.groupId)) {
+        return res.status(404).json({ message: 'Alert not found or access denied' });
+      }
+
+      // Check if already archived
+      const isArchived = await storage.isAlertArchived(user.id, alertId);
+      if (isArchived) {
+        return res.status(400).json({ message: 'Alert already archived' });
+      }
+
+      const archivedAlert = await storage.archiveAlert(user.id, alertId);
+      res.json({ success: true, archived: archivedAlert });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to archive alert' });
+    }
+  });
+
+  // Get archived alerts
+  app.get('/api/alerts/archived', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const archivedAlerts = await storage.getArchivedAlerts(user.id);
+      res.json({ alerts: archivedAlerts });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch archived alerts' });
+    }
+  });
+
+  // Subscribe to push notifications
+  app.post('/api/push/subscribe', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      const { subscription } = req.body;
+      if (!subscription) {
+        return res.status(400).json({ message: 'Subscription data required' });
+      }
+
+      // Validate subscription data
+      try {
+        const parsedSubscription = JSON.parse(subscription);
+        if (!parsedSubscription.endpoint) {
+          return res.status(400).json({ message: 'Invalid subscription data: missing endpoint' });
+        }
+      } catch (parseError) {
+        return res.status(400).json({ message: 'Invalid subscription data: not valid JSON' });
+      }
+
+      await storage.updateUserPushSubscription(sessionId, subscription);
+      console.log(`Push subscription updated for user ${user.id} (${user.nickname})`);
+      res.json({ message: 'Push subscription updated successfully' });
+    } catch (error: any) {
+      console.error('Failed to update push subscription:', error);
+      res.status(500).json({ message: 'Failed to update push subscription' });
+    }
+  });
+
+  // Unsubscribe from push notifications
+  app.post('/api/push/unsubscribe', async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(401).json({ message: 'Session ID required' });
+      }
+
+      const user = await storage.getUserBySessionId(sessionId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      await storage.updateUserPushSubscription(sessionId, null);
+      res.json({ message: 'Push subscription removed successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to remove push subscription' });
     }
   });
 

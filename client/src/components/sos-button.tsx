@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
 interface SOSButtonProps {
   onEmergencyAlert: () => void;
@@ -9,9 +10,16 @@ interface SOSButtonProps {
 
 export function SOSButton({ onEmergencyAlert, nickname }: SOSButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const { triggerEmergencyAlert, isSupported } = useHapticFeedback();
 
   const handlePress = () => {
     setIsPressed(true);
+    
+    // Trigger immediate haptic feedback when button is pressed
+    if (isSupported) {
+      triggerEmergencyAlert();
+    }
+    
     onEmergencyAlert();
     
     // Reset pressed state after animation

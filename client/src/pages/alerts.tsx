@@ -1,6 +1,12 @@
 import { RecentAlerts } from '@/components/recent-alerts';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertTriangle, Activity } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { ArrowLeft, AlertTriangle, Activity, Menu, Archive } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface AlertsPageProps {
@@ -22,9 +28,26 @@ export default function AlertsPage({ sessionId }: AlertsPageProps) {
               </Link>
               <h1 className="text-xl font-bold text-gray-900">Alert History</h1>
             </div>
-            <div className="flex items-center space-x-1">
-              <Activity className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-500">Live</span>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <Activity className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-500">Live</span>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <Menu className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/archive">
+                      <Archive className="h-4 w-4 mr-2" />
+                      View Archive
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

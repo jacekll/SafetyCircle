@@ -10,11 +10,75 @@ Preferred communication style: Simple, everyday language.
 
 ## Project Status
 
-**Current State**: Fully functional SOS emergency alert application
-**Last Updated**: January 15, 2025
-**Key Features Tested**: Group creation, token sharing, real-time emergency alerts, WebSocket notifications
+**Current State**: Production-ready SOS emergency alert application with complete feature set
+**Last Updated**: January 16, 2025
+**Key Features Tested**: Group creation, token sharing, real-time emergency alerts, WebSocket notifications, alert archiving, answer tracking, haptic feedback, clickable notifications
 
 ## Recent Changes
+
+### January 16, 2025
+- **Enhanced Security with Cryptographic Token Generation**:
+  - Replaced Math.random() with Node.js crypto.randomBytes() for secure token generation
+  - Implemented cryptographically secure random number generation using 48-bit entropy
+  - Added timestamp-based additional entropy for enhanced unpredictability
+  - Group tokens now generated using industry-standard secure randomness
+  - Maintains 8-character readable format (uppercase letters and numbers)
+- **Implemented Persistent Database Storage**:
+  - Switched from in-memory storage to PostgreSQL database
+  - Created comprehensive DatabaseStorage class with full CRUD operations
+  - Added database connection and schema management
+  - Implemented basic concurrency control through database constraints
+  - All data now persists across server restarts
+  - Successfully tested group creation, alerts, and user management with database
+- **Completed Green Checkmark Notification System**:
+  - Fixed WebSocket message broadcasting structure for alert-answered messages
+  - Implemented proper message type handling in client WebSocket hook
+  - Added comprehensive debugging and error handling for WebSocket connections
+  - Successfully tested green notifications with checkmark icons when alerts are answered
+  - System now shows "Alert Answered" with green styling and haptic feedback
+  - Real-time broadcasting works across multiple browsers and sessions
+  - Resolved TypeScript errors in server push notification handling
+- **Implemented Alert Archive System**:
+  - Added archive database schema with archivedAlerts table
+  - Created archive API endpoints (`POST /api/alerts/:id/archive`, `GET /api/alerts/archived`)
+  - Built archive confirmation modal with alert details preview
+  - Added archive dropdown menus to alert cards with three-dot menu
+  - Created dedicated `/archive` page showing archived alerts with location links
+  - Added hamburger menu in alerts page for archive access
+  - Updated alert queries to filter out archived alerts from main view
+  - Backend API tested and working correctly with proper authentication
+- **Implemented "Mark as Answered" Functionality**:
+  - Added database schema for tracking who answered alerts (answeredBy, answeredAt fields)
+  - Created API endpoint POST /api/alerts/:id/answer with authentication
+  - Added "Mark as Answered" option to alert dropdown menus
+  - Implemented real-time WebSocket notifications when alerts are answered
+  - Added answered status display showing who responded to alerts
+  - Updated both main alerts and archive pages to show answer status
+- **Implemented Haptic Feedback System**:
+  - Created comprehensive haptic feedback hook with pattern customization
+  - Added SOS pattern vibration for emergency alerts (long-short-long sequence)
+  - Implemented different patterns for answered alerts and user actions
+  - Added haptic feedback settings toggle in Groups page
+  - Integrated haptic feedback into SOS button press for immediate response
+  - Added localStorage-based user preferences for haptic feedback
+  - Supports light, medium, and heavy intensity levels
+- **Enhanced Alert Notifications with Navigation**:
+  - Added clickable "View Details" button to incoming alert toast notifications
+  - Emergency alert messages now link directly to Alert History page
+  - Alert answered notifications also include navigation to Alert History
+  - Proper ToastAction component implementation for user interaction
+  - Tested and confirmed working in browser interface
+- **Improved Group UI with Shield Icons and Details Modal**:
+  - Replaced suitcase icons with shield icons throughout group interface
+  - Added kebab menu (three dots) to each group item for better UX
+  - Created comprehensive group details modal with member list
+  - Implemented hidden token reveal functionality with copy-to-clipboard
+  - Removed admin role system - all members can view tokens and manage groups
+  - Added API endpoint for fetching group members with proper authentication
+  - Removed unnecessary status section from group details modal
+- Cleaned up debugging logging from Android PWA push notification implementation
+- Streamlined push notification hooks and service worker code
+- Maintained Android-specific PWA configurations and compatibility fixes
 
 ### January 15, 2025
 - Fixed authentication headers in API requests (x-session-id header)
@@ -32,6 +96,20 @@ Preferred communication style: Simple, everyday language.
   - Maps integration for viewing alert locations
   - Real-time location accuracy display in SOS modal
   - Location links in alert history for emergency events
+- Implemented push notifications for Android mobile devices:
+  - Web Push API integration with service worker
+  - Users can enable/disable push notifications in Groups page
+  - Emergency alerts sent as push notifications when app is closed
+  - VAPID keys configured for secure push messaging
+  - Push notifications include location data when available
+- Developed one-tap SOS home screen widget:
+  - Progressive Web App (PWA) implementation with manifest.json
+  - Dedicated SOS widget page (/sos-widget) with same functionality as main app
+  - App shortcuts configuration for home screen widget access
+  - PWA install prompts with automatic detection
+  - Complete standalone SOS interface with status indicators
+  - Direct emergency alert sending with GPS location integration
+  - Proper PWA metadata and icons for mobile installation
 
 ## System Architecture
 
@@ -67,12 +145,18 @@ Preferred communication style: Simple, everyday language.
 - **Alerts**: Emergency messages with type classification (emergency/resolved)
   - Location fields: latitude, longitude, locationAccuracy for GPS coordinates
   - Real-time broadcasting of location data to group members
+- **Archived Alerts**: User-specific alert archiving system
+  - Links users to archived alerts with timestamp
+  - Filters archived alerts from main alert views
+  - Maintains alert history for user reference
 
 ### Real-time Features
 - WebSocket server mounted on `/ws` endpoint
 - User authentication via session ID exchange
 - Live alert broadcasting to group members
 - Connection state management with automatic reconnection
+- Push notifications for offline users via Web Push API
+- Service worker for background notification handling
 
 ### UI Structure
 - **Main Screen**: Focused SOS button with navigation to other screens

@@ -9,6 +9,8 @@ import { apiRequest } from "@/lib/queryClient";
 import Home from "@/pages/home";
 import GroupsPage from "@/pages/groups";
 import AlertsPage from "@/pages/alerts";
+import ArchivePage from "@/pages/archive";
+import SOSWidget from "@/pages/sos-widget";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,6 +49,12 @@ function Router() {
       </Route>
       <Route path="/alerts">
         <AlertsPage sessionId={sessionId} />
+      </Route>
+      <Route path="/archive">
+        <ArchivePage sessionId={sessionId} />
+      </Route>
+      <Route path="/sos-widget">
+        <SOSWidget />
       </Route>
       <Route component={NotFound} />
     </Switch>

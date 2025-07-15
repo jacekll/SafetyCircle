@@ -6,8 +6,9 @@ import { type GroupWithDetails } from '@shared/schema';
 import { SOSButton } from '@/components/sos-button';
 import { SOSConfirmModal } from '@/components/modals/sos-confirm-modal';
 import { JoinGroupModal } from '@/components/modals/join-group-modal';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 import { Button } from '@/components/ui/button';
-import { Shield, Users, AlertTriangle, Settings } from 'lucide-react';
+import { Shield, Users, AlertTriangle, Settings, Download } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface HomeProps {
@@ -81,6 +82,9 @@ export default function Home({ sessionId }: HomeProps) {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
+        
         {/* SOS Button */}
         <SOSButton onEmergencyAlert={handleSOSAlert} nickname={nickname} />
 
@@ -121,16 +125,28 @@ export default function Home({ sessionId }: HomeProps) {
           </Link>
         </div>
 
-        {/* Quick Join */}
+        {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setShowJoinModal(true)}
-          >
-            Join Group with Token
-          </Button>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowJoinModal(true)}
+            >
+              Join Group with Token
+            </Button>
+            
+            <Link href="/sos-widget">
+              <Button
+                variant="outline"
+                className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                SOS Home Screen Widget
+              </Button>
+            </Link>
+          </div>
         </div>
       </main>
 

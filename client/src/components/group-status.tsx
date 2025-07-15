@@ -1,8 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { type GroupWithDetails } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Users, Briefcase, Plus, ChevronRight } from 'lucide-react';
+import { Shield, Plus, MoreVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent, 
+  DropdownMenuItem 
+} from '@/components/ui/dropdown-menu';
+import { GroupDetailsModal } from '@/components/modals/group-details-modal';
+import { useState } from 'react';
 
 interface GroupStatusProps {
   sessionId: string;
@@ -10,6 +18,8 @@ interface GroupStatusProps {
 }
 
 export function GroupStatus({ sessionId, onJoinGroup }: GroupStatusProps) {
+  const [selectedGroup, setSelectedGroup] = useState<GroupWithDetails | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { data: groupsData, isLoading } = useQuery({
     queryKey: ['/api/groups'],
     enabled: !!sessionId,
@@ -52,14 +62,8 @@ export function GroupStatus({ sessionId, onJoinGroup }: GroupStatusProps) {
           {groups.map((group) => (
             <div key={group.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  group.name.toLowerCase().includes('family') ? 'bg-primary' : 'bg-warning'
-                }`}>
-                  {group.name.toLowerCase().includes('family') ? (
-                    <Users className="text-white text-sm" />
-                  ) : (
-                    <Briefcase className="text-white text-sm" />
-                  )}
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Shield className="text-blue-600 text-sm" />
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">{group.name}</div>
@@ -69,15 +73,29 @@ export function GroupStatus({ sessionId, onJoinGroup }: GroupStatusProps) {
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedGroup(group);
+                      setShowDetailsModal(true);
+                    }}
+                  >
+                    View Details
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ))}
         </div>
       ) : (
         <div className="text-center py-8">
-          <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <Shield className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 text-sm">
             You haven't joined any groups yet.
             <br />
@@ -85,6 +103,12 @@ export function GroupStatus({ sessionId, onJoinGroup }: GroupStatusProps) {
           </p>
         </div>
       )}
+
+      <GroupDetailsModal
+        open={showDetailsModal}
+        onOpenChange={setShowDetailsModal}
+        group={selectedGroup}
+      />
     </div>
   );
 }

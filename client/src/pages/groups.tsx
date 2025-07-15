@@ -4,6 +4,8 @@ import { type GroupWithDetails } from '@shared/schema';
 import { GroupStatus } from '@/components/group-status';
 import { JoinGroupModal } from '@/components/modals/join-group-modal';
 import { CreateGroupModal } from '@/components/modals/create-group-modal';
+import { PushNotificationToggle } from '@/components/push-notification-toggle';
+import { HapticFeedbackToggle } from '@/components/haptic-feedback-toggle';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, Key, PlusCircle } from 'lucide-react';
 import { Link } from 'wouter';
@@ -104,6 +106,15 @@ export default function GroupsPage({ sessionId }: GroupsPageProps) {
             </div>
           </div>
         )}
+
+        {/* Settings */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-medium text-gray-900 mb-4">Settings</h3>
+          <div className="space-y-4">
+            <PushNotificationToggle sessionId={sessionId} />
+            <HapticFeedbackToggle />
+          </div>
+        </div>
       </main>
 
       {/* Modals */}
