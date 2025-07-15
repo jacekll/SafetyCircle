@@ -1,40 +1,30 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { type GroupWithDetails } from '@shared/schema';
 import { SOSButton } from '@/components/sos-button';
-import { GroupStatus } from '@/components/group-status';
-import { RecentAlerts } from '@/components/recent-alerts';
-import { JoinGroupModal } from '@/components/modals/join-group-modal';
-import { CreateGroupModal } from '@/components/modals/create-group-modal';
 import { SOSConfirmModal } from '@/components/modals/sos-confirm-modal';
+import { JoinGroupModal } from '@/components/modals/join-group-modal';
 import { Button } from '@/components/ui/button';
-import { Shield, Key, PlusCircle } from 'lucide-react';
+import { Shield, Users, AlertTriangle, Settings } from 'lucide-react';
+import { Link } from 'wouter';
 
-export default function Home() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
+interface HomeProps {
+  sessionId: string;
+}
+
+export default function Home({ sessionId }: HomeProps) {
   const [nickname, setNickname] = useState('Anonymous');
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSOSModal, setShowSOSModal] = useState(false);
 
   const { isConnected } = useWebSocket(sessionId);
 
-  // Initialize session
-  const sessionMutation = useMutation({
-    mutationFn: async () => {
-      const storedSessionId = localStorage.getItem('sos_session_id');
-      const response = await apiRequest('POST', '/api/auth', { 
-        sessionId: storedSessionId 
-      });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setSessionId(data.sessionId);
-      setNickname(data.user.nickname);
-      localStorage.setItem('sos_session_id', data.sessionId);
-    },
+  // Get user data
+  const { data: userData } = useQuery({
+    queryKey: ['/api/auth'],
+    enabled: !!sessionId,
   });
 
   // Get user's groups
@@ -46,8 +36,10 @@ export default function Home() {
   const groups: GroupWithDetails[] = groupsData?.groups || [];
 
   useEffect(() => {
-    sessionMutation.mutate();
-  }, []);
+    if (userData?.user?.nickname) {
+      setNickname(userData.user.nickname);
+    }
+  }, [userData]);
 
   const handleSOSAlert = () => {
     // Don't proceed if groups are still loading
@@ -61,21 +53,6 @@ export default function Home() {
     }
     setShowSOSModal(true);
   };
-
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-emergency rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
-            <Shield className="text-white text-xl" />
-          </div>
-          <div className="text-lg font-medium text-gray-700">
-            Initializing SafeAlert...
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -107,53 +84,60 @@ export default function Home() {
         {/* SOS Button */}
         <SOSButton onEmergencyAlert={handleSOSAlert} nickname={nickname} />
 
-        {/* Group Status */}
-        <GroupStatus 
-          sessionId={sessionId} 
-          onJoinGroup={() => setShowJoinModal(true)} 
-        />
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center text-center hover:border-primary hover:bg-blue-50 transition-colors"
-            onClick={() => setShowJoinModal(true)}
-          >
-            <div className="w-12 h-12 bg-blue-100 rounded-lg mb-3 flex items-center justify-center">
-              <Key className="text-primary text-lg" />
-            </div>
-            <div className="font-medium text-gray-900 mb-1">Join Group</div>
-            <div className="text-xs text-gray-500">Enter group token</div>
-          </Button>
+        {/* Navigation Cards */}
+        <div className="grid grid-cols-1 gap-4">
+          <Link href="/groups">
+            <Button
+              variant="outline"
+              className="w-full h-auto p-6 flex items-center justify-between text-left hover:border-primary hover:bg-blue-50 transition-colors"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="text-primary text-lg" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">Your Groups</div>
+                  <div className="text-sm text-gray-500">Manage and join groups</div>
+                </div>
+              </div>
+            </Button>
+          </Link>
           
-          <Button
-            variant="outline"
-            className="h-auto p-4 flex flex-col items-center text-center hover:border-success hover:bg-green-50 transition-colors"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <div className="w-12 h-12 bg-green-100 rounded-lg mb-3 flex items-center justify-center">
-              <PlusCircle className="text-success text-lg" />
-            </div>
-            <div className="font-medium text-gray-900 mb-1">Create Group</div>
-            <div className="text-xs text-gray-500">Generate new token</div>
-          </Button>
+          <Link href="/alerts">
+            <Button
+              variant="outline"
+              className="w-full h-auto p-6 flex items-center justify-between text-left hover:border-orange-500 hover:bg-orange-50 transition-colors"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="text-orange-600 text-lg" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">Alert History</div>
+                  <div className="text-sm text-gray-500">View recent emergency alerts</div>
+                </div>
+              </div>
+            </Button>
+          </Link>
         </div>
 
-        {/* Recent Alerts */}
-        <RecentAlerts sessionId={sessionId} />
+        {/* Quick Join */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowJoinModal(true)}
+          >
+            Join Group with Token
+          </Button>
+        </div>
       </main>
 
       {/* Modals */}
       <JoinGroupModal 
         open={showJoinModal} 
         onOpenChange={setShowJoinModal}
-        sessionId={sessionId}
-      />
-      
-      <CreateGroupModal 
-        open={showCreateModal} 
-        onOpenChange={setShowCreateModal}
         sessionId={sessionId}
       />
       
