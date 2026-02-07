@@ -7,7 +7,7 @@ This is a real-time emergency alert system built with React, Express, and WebSoc
 Built with **Replit** to try it out and try out **Progressive Web App (PWA)** capabilities. Updated to enable local development.
 
 
-<img width="412" height="915" src="https://github.com/jacekll/SafetyCircle/blob/main/docs%2FSafetyCircle%20Screenshot%20%2822%29.png">
+<img width="446" height="902" src="https://github.com/jacekll/SafetyCircle/blob/main/docs%2FScreenshot.png">
 
 
 ## User Preferences
