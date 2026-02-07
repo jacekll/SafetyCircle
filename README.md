@@ -2,7 +2,9 @@
 
 ## Overview
 
-This is a fully functional real-time emergency alert system built with React, Express, and WebSockets. The application allows users to create and join groups using 8-character tokens, send emergency alerts to group members, and receive real-time notifications. Users can participate without traditional email signup - only requiring a nickname. The system features a modern mobile-responsive UI built with shadcn/ui components and uses in-memory storage for fast prototyping.
+This is a real-time emergency alert system built with React, Express, and WebSockets. The application allows users to create and join groups using 8-character tokens, send emergency alerts to group members, and receive real-time notifications. Users can participate without traditional email signup - only requiring a nickname. The system features a modern mobile-responsive UI built with shadcn/ui components.
+
+Built with **Replit** to try it out and try out **Progressive Web App (PWA)** capabilities. Updated to enable local development.
 
 ## User Preferences
 
@@ -10,8 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Project Status
 
-**Current State**: Production-ready SOS emergency alert application with complete feature set
-**Last Updated**: January 16, 2025
+**Current State**: SOS emergency alert application PoC with rich feature set
 **Key Features Tested**: Group creation, token sharing, real-time emergency alerts, WebSocket notifications, alert archiving, answer tracking, haptic feedback, clickable notifications
 
 ## Recent Changes
