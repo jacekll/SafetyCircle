@@ -10,17 +10,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users, Key, PlusCircle } from 'lucide-react';
 import { Link } from 'wouter';
 
-interface GroupsPageProps {
-  sessionId: string;
-}
-
-export default function GroupsPage({ sessionId }: GroupsPageProps) {
+export default function GroupsPage() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: groupsData } = useQuery({
     queryKey: ['/api/groups'],
-    enabled: !!sessionId,
   });
 
   const groups: GroupWithDetails[] = groupsData?.groups || [];
@@ -48,9 +43,8 @@ export default function GroupsPage({ sessionId }: GroupsPageProps) {
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Group Status */}
-        <GroupStatus 
-          sessionId={sessionId} 
-          onJoinGroup={() => setShowJoinModal(true)} 
+        <GroupStatus
+          onJoinGroup={() => setShowJoinModal(true)}
         />
 
         {/* Group Actions */}
@@ -111,23 +105,21 @@ export default function GroupsPage({ sessionId }: GroupsPageProps) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <h3 className="font-medium text-gray-900 mb-4">Settings</h3>
           <div className="space-y-4">
-            <PushNotificationToggle sessionId={sessionId} />
+            <PushNotificationToggle />
             <HapticFeedbackToggle />
           </div>
         </div>
       </main>
 
       {/* Modals */}
-      <JoinGroupModal 
-        open={showJoinModal} 
+      <JoinGroupModal
+        open={showJoinModal}
         onOpenChange={setShowJoinModal}
-        sessionId={sessionId}
       />
-      
-      <CreateGroupModal 
-        open={showCreateModal} 
+
+      <CreateGroupModal
+        open={showCreateModal}
         onOpenChange={setShowCreateModal}
-        sessionId={sessionId}
       />
     </div>
   );

@@ -12,15 +12,10 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const sessionId = localStorage.getItem('sos_session_id');
   const headers: Record<string, string> = {};
-  
+
   if (data) {
     headers["Content-Type"] = "application/json";
-  }
-  
-  if (sessionId) {
-    headers["x-session-id"] = sessionId;
   }
 
   const res = await fetch(url, {
@@ -40,16 +35,8 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const sessionId = localStorage.getItem('sos_session_id');
-    const headers: Record<string, string> = {};
-    
-    if (sessionId) {
-      headers["x-session-id"] = sessionId;
-    }
-
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
-      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

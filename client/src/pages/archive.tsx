@@ -7,19 +7,14 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import { AlertWithDetails } from "@shared/schema";
 
-interface ArchivePageProps {
-  sessionId: string;
-}
-
 function formatLocationLink(latitude: string | null, longitude: string | null): string | null {
   if (!latitude || !longitude) return null;
   return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
-export default function ArchivePage({ sessionId }: ArchivePageProps) {
+export default function ArchivePage() {
   const { data: alertsData, isLoading } = useQuery({
     queryKey: ['/api/alerts/archived'],
-    enabled: !!sessionId,
   });
 
   const archivedAlerts = alertsData?.alerts || [];

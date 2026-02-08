@@ -16,16 +16,12 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
-interface RecentAlertsProps {
-  sessionId: string;
-}
-
 function formatLocationLink(latitude: string | null, longitude: string | null): string | null {
   if (!latitude || !longitude) return null;
   return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
-export function RecentAlerts({ sessionId }: RecentAlertsProps) {
+export function RecentAlerts() {
   const [selectedAlert, setSelectedAlert] = useState<AlertWithDetails | null>(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const { toast } = useToast();
@@ -34,7 +30,6 @@ export function RecentAlerts({ sessionId }: RecentAlertsProps) {
 
   const { data: alertsData, isLoading } = useQuery({
     queryKey: ['/api/alerts'],
-    enabled: !!sessionId,
   });
 
   const answerMutation = useMutation({

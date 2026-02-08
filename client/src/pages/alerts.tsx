@@ -1,19 +1,15 @@
 import { RecentAlerts } from '@/components/recent-alerts';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, AlertTriangle, Activity, Menu, Archive } from 'lucide-react';
 import { Link } from 'wouter';
 
-interface AlertsPageProps {
-  sessionId: string;
-}
-
-export default function AlertsPage({ sessionId }: AlertsPageProps) {
+export default function AlertsPage() {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
@@ -70,7 +66,7 @@ export default function AlertsPage({ sessionId }: AlertsPageProps) {
         </div>
 
         {/* Recent Alerts */}
-        <RecentAlerts sessionId={sessionId} />
+        <RecentAlerts />
 
         {/* Help Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">

@@ -11,7 +11,7 @@ interface WebSocketMessage {
   [key: string]: any;
 }
 
-export function useWebSocket(sessionId: string | null) {
+export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const { toast } = useToast();
@@ -20,29 +20,27 @@ export function useWebSocket(sessionId: string | null) {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (!sessionId) return;
-
     // Use the same origin as the current page for WebSocket connection
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    
+
     // Ensure we have a valid host
     if (!host || host.includes('undefined')) {
       console.error('Invalid host detected:', host);
       return;
     }
-    
+
     const wsUrl = `${protocol}//${host}/ws`;
-    
-    console.log('WebSocket connection details:', { 
-      protocol: window.location.protocol, 
-      hostname: window.location.hostname, 
-      port: window.location.port, 
+
+    console.log('WebSocket connection details:', {
+      protocol: window.location.protocol,
+      hostname: window.location.hostname,
+      port: window.location.port,
       host: window.location.host,
-      href: window.location.href 
+      href: window.location.href
     });
     console.log('Connecting to WebSocket:', wsUrl);
-    
+
     let ws: WebSocket;
     try {
       ws = new WebSocket(wsUrl);
@@ -54,22 +52,16 @@ export function useWebSocket(sessionId: string | null) {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connection opened, authenticating...');
-      // Don't set connected yet - wait for auth success
-      ws.send(JSON.stringify({
-        type: 'auth',
-        sessionId: sessionId
-      }));
+      console.log('WebSocket connection opened');
     };
 
     ws.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
 
-        
         if (message.type === 'auth_success') {
           console.log('WebSocket authenticated successfully');
-          setIsConnected(true); // Only set connected after successful auth
+          setIsConnected(true);
         } else if (message.type === 'alert') {
           // Show toast notification for new alerts
           const alert = message.alert;
@@ -143,7 +135,7 @@ export function useWebSocket(sessionId: string | null) {
         ws.close();
       }
     };
-  }, [sessionId, toast, navigate]);
+  }, [toast, navigate]);
 
   return { isConnected };
 }

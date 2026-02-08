@@ -1,11 +1,38 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+// Augment express-session with custom SessionData
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+  }
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure session middleware
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 365 days
+      sameSite: process.env.NODE_ENV === "production" ? "strict": "lax",
+    },
+  })
+);
 
 app.use((req, res, next) => {
   const start = Date.now();

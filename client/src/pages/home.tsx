@@ -11,27 +11,21 @@ import { Button } from '@/components/ui/button';
 import { Shield, Users, AlertTriangle, Settings, Download } from 'lucide-react';
 import { Link } from 'wouter';
 
-interface HomeProps {
-  sessionId: string;
-}
-
-export default function Home({ sessionId }: HomeProps) {
+export default function Home() {
   const [nickname, setNickname] = useState('Anonymous');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showSOSModal, setShowSOSModal] = useState(false);
 
-  const { isConnected } = useWebSocket(sessionId);
+  const { isConnected } = useWebSocket();
 
   // Get user data
   const { data: userData } = useQuery({
     queryKey: ['/api/auth'],
-    enabled: !!sessionId,
   });
 
   // Get user's groups
   const { data: groupsData, isLoading: groupsLoading } = useQuery({
     queryKey: ['/api/groups'],
-    enabled: !!sessionId,
   });
 
   const groups: GroupWithDetails[] = groupsData?.groups || [];
@@ -151,17 +145,15 @@ export default function Home({ sessionId }: HomeProps) {
       </main>
 
       {/* Modals */}
-      <JoinGroupModal 
-        open={showJoinModal} 
+      <JoinGroupModal
+        open={showJoinModal}
         onOpenChange={setShowJoinModal}
-        sessionId={sessionId}
       />
-      
-      <SOSConfirmModal 
-        open={showSOSModal} 
+
+      <SOSConfirmModal
+        open={showSOSModal}
         onOpenChange={setShowSOSModal}
         groups={groups}
-        sessionId={sessionId}
       />
     </div>
   );

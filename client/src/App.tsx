@@ -14,20 +14,16 @@ import SOSWidget from "@/pages/sos-widget";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Initialize session for the app
   const sessionMutation = useMutation({
     mutationFn: async () => {
-      const storedSessionId = localStorage.getItem('sos_session_id');
-      const response = await apiRequest('POST', '/api/auth', { 
-        sessionId: storedSessionId 
-      });
+      const response = await apiRequest('POST', '/api/auth', {});
       return response.json();
     },
-    onSuccess: (data) => {
-      setSessionId(data.sessionId);
-      localStorage.setItem('sos_session_id', data.sessionId);
+    onSuccess: () => {
+      setIsAuthenticated(true);
     },
   });
 
@@ -35,23 +31,23 @@ function Router() {
     sessionMutation.mutate();
   }, []);
 
-  if (!sessionId) {
+  if (!isAuthenticated) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
   return (
     <Switch>
       <Route path="/">
-        <Home sessionId={sessionId} />
+        <Home />
       </Route>
       <Route path="/groups">
-        <GroupsPage sessionId={sessionId} />
+        <GroupsPage />
       </Route>
       <Route path="/alerts">
-        <AlertsPage sessionId={sessionId} />
+        <AlertsPage />
       </Route>
       <Route path="/archive">
-        <ArchivePage sessionId={sessionId} />
+        <ArchivePage />
       </Route>
       <Route path="/sos-widget">
         <SOSWidget />
