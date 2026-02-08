@@ -1,0 +1,13 @@
+services:
+  db_tests:
+    image: postgres
+    restart: always
+    env_file:
+      - .env.postgres.tests
+    volumes:
+      - pgdatatests:/var/lib/postgresql/data
+    ports:
+      - 5433:5433
+
+volumes:
+  pgdatatests:

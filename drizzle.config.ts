@@ -1,3 +1,13 @@
+import { config } from "dotenv";
+import path from "path";
+let envFile = '.env.development';
+
+if (process.env.NODE_ENV === "production") {
+    envFile = ".env";
+}
+
+config({ path: path.resolve(process.cwd(), envFile), override: true });
+
 import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_URL) {

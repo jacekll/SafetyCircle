@@ -21,7 +21,8 @@ import {
   type AlertWithDetails
 } from "@shared/schema";
 import { db } from './db';
-import { eq, desc, and, inArray, count, notInArray } from 'drizzle-orm';
+import { eq, desc, and, inArray, count, notInArray, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { randomBytes } from 'crypto';
 
 export interface IStorage {
@@ -115,6 +116,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserGroups(userId: number): Promise<GroupWithDetails[]> {
+    // Create alias for filtering user's groups
+    const userMembership = alias(groupMembers, 'user_membership');
+
+    // Join twice: once to filter user's groups, once to count all members
     const userGroupsData = await db
       .select({
         id: groups.id,
@@ -125,11 +130,12 @@ export class DatabaseStorage implements IStorage {
         memberCount: count(groupMembers.id),
       })
       .from(groups)
+      .innerJoin(userMembership, eq(groups.id, userMembership.groupId))
       .innerJoin(groupMembers, eq(groups.id, groupMembers.groupId))
-      .where(eq(groupMembers.userId, userId))
+      .where(eq(userMembership.userId, userId))
       .groupBy(groups.id, groups.name, groups.token, groups.createdBy, groups.createdAt);
 
-    return userGroupsData.map(group => ({
+    return userGroupsData.map((group: any) => ({
       ...group,
       memberCount: Number(group.memberCount)
     }));

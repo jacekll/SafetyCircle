@@ -15,6 +15,10 @@ const isLocalPostgres = process.env.DATABASE_URL?.includes('localhost') ||
 let pool: Pool | undefined;
 let db: any;
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 if (isLocalPostgres) {
   // Use local PostgreSQL
   const client = postgres(process.env.DATABASE_URL);

@@ -1,8 +1,16 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import path from "path";
+let envFile = '.env.development';
+
+if (process.env.NODE_ENV === "production") {
+    envFile = ".env";
+}
+
+config({ path: path.resolve(process.cwd(), envFile) });
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { log, setupVite, serveStatic } from "./vite";
 
 // Augment express-session with custom SessionData
 declare module "express-session" {
@@ -36,7 +44,7 @@ app.use(
 
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
+  const reqPath = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -47,8 +55,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+    if (reqPath.startsWith("/api")) {
+      let logLine = `${req.method} ${reqPath} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -65,6 +73,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Dynamic import: routes.ts triggers db.ts which reads DATABASE_URL at module
+  // load time. It must be imported after dotenv.config() has run above.
+  const { registerRoutes } = await import("./routes");
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
