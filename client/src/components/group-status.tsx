@@ -13,16 +13,14 @@ import { GroupDetailsModal } from '@/components/modals/group-details-modal';
 import { useState } from 'react';
 
 interface GroupStatusProps {
-  sessionId: string;
   onJoinGroup: () => void;
 }
 
-export function GroupStatus({ sessionId, onJoinGroup }: GroupStatusProps) {
+export function GroupStatus({ onJoinGroup }: GroupStatusProps) {
   const [selectedGroup, setSelectedGroup] = useState<GroupWithDetails | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { data: groupsData, isLoading } = useQuery({
     queryKey: ['/api/groups'],
-    enabled: !!sessionId,
   });
 
   const groups: GroupWithDetails[] = groupsData?.groups || [];

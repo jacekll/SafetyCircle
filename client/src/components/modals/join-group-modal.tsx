@@ -26,10 +26,9 @@ import { Key } from 'lucide-react';
 interface JoinGroupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sessionId: string;
 }
 
-export function JoinGroupModal({ open, onOpenChange, sessionId }: JoinGroupModalProps) {
+export function JoinGroupModal({ open, onOpenChange }: JoinGroupModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

@@ -26,10 +26,9 @@ import { PlusCircle, Copy } from 'lucide-react';
 interface CreateGroupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sessionId: string;
 }
 
-export function CreateGroupModal({ open, onOpenChange, sessionId }: CreateGroupModalProps) {
+export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createdGroup, setCreatedGroup] = useState<{ name: string; token: string } | null>(null);

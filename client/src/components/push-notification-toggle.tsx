@@ -6,11 +6,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-interface PushNotificationToggleProps {
-  sessionId: string;
-}
-
-export function PushNotificationToggle({ sessionId }: PushNotificationToggleProps) {
+export function PushNotificationToggle() {
   const {
     isSupported,
     isSubscribed,
@@ -18,7 +14,7 @@ export function PushNotificationToggle({ sessionId }: PushNotificationToggleProp
     error,
     subscribe,
     unsubscribe
-  } = usePushNotifications(sessionId);
+  } = usePushNotifications();
   
   const [testLoading, setTestLoading] = useState(false);
   const { toast } = useToast();

@@ -9,7 +9,7 @@ interface PushNotificationState {
   vapidKey: string | null;
 }
 
-export function usePushNotifications(sessionId: string | null) {
+export function usePushNotifications() {
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
     isSubscribed: false,
@@ -54,7 +54,7 @@ export function usePushNotifications(sessionId: string | null) {
           updateViaCache: 'none'
         });
         await navigator.serviceWorker.ready;
-      } catch (error) {
+      } catch (error: any) {
         setState(prev => ({ ...prev, error: `Failed to register service worker: ${error.message || error}` }));
       }
     };
@@ -64,32 +64,34 @@ export function usePushNotifications(sessionId: string | null) {
 
   // Fetch VAPID key and check existing subscription
   useEffect(() => {
-    if (!state.isSupported || !sessionId) return;
+    if (!state.isSupported) return;
 
     const initializePushNotifications = async () => {
       try {
-        const response = await fetch('/api/push/vapid-key');
+        const response = await fetch('/api/push/vapid-key', {
+          credentials: 'include'
+        });
         if (!response.ok) {
           throw new Error(`VAPID fetch failed: ${response.status} ${response.statusText}`);
         }
         const vapidData = await response.json();
         const publicKey = vapidData.publicKey;
-        
+
         setState(prev => ({ ...prev, vapidKey: publicKey }));
 
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         setState(prev => ({ ...prev, isSubscribed: !!subscription }));
-      } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          error: `Failed to initialize push notifications: ${error.message || error}` 
+      } catch (error: any) {
+        setState(prev => ({
+          ...prev,
+          error: `Failed to initialize push notifications: ${error.message || error}`
         }));
       }
     };
 
     initializePushNotifications();
-  }, [state.isSupported, sessionId]);
+  }, [state.isSupported]);
 
   // Helper function to convert VAPID key
   const urlBase64ToUint8Array = (base64String: string) => {
@@ -137,8 +139,8 @@ export function usePushNotifications(sessionId: string | null) {
   }, []);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!state.isSupported || !sessionId || !state.vapidKey) {
-      const errorMsg = `Prerequisites missing: supported=${state.isSupported}, sessionId=${!!sessionId}, vapidKey=${!!state.vapidKey}`;
+    if (!state.isSupported || !state.vapidKey) {
+      const errorMsg = `Prerequisites missing: supported=${state.isSupported}, vapidKey=${!!state.vapidKey}`;
       console.error('Subscribe failed:', errorMsg);
       setState(prev => ({ ...prev, error: 'Push notifications not supported or VAPID key not available' }));
       return false;
@@ -149,22 +151,22 @@ export function usePushNotifications(sessionId: string | null) {
     try {
       const hasPermission = await requestPermission();
       if (!hasPermission) {
-        setState(prev => ({ 
-          ...prev, 
-          isLoading: false, 
-          error: 'Notification permission denied' 
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Notification permission denied'
         }));
         return false;
       }
 
       const registration = await navigator.serviceWorker.ready;
-      
+
       // Check if there's an existing subscription first (Android requirement)
       const existingSubscription = await registration.pushManager.getSubscription();
       if (existingSubscription) {
         await existingSubscription.unsubscribe();
       }
-      
+
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(state.vapidKey)
@@ -173,9 +175,9 @@ export function usePushNotifications(sessionId: string | null) {
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': sessionId
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           subscription: JSON.stringify(subscription)
         })
@@ -184,38 +186,38 @@ export function usePushNotifications(sessionId: string | null) {
       if (!response.ok) {
         throw new Error(`Server subscription failed: ${response.status} ${response.statusText}`);
       }
-      setState(prev => ({ 
-        ...prev, 
-        isSubscribed: true, 
-        isLoading: false 
+      setState(prev => ({
+        ...prev,
+        isSubscribed: true,
+        isLoading: false
       }));
 
       return true;
     } catch (error: any) {
-      const detailedError = error.name === 'NotSupportedError' 
+      const detailedError = error.name === 'NotSupportedError'
         ? 'Push notifications not supported on this device/browser'
         : error.name === 'NotAllowedError'
         ? 'Push notifications permission denied'
         : `Subscription error: ${error.message || error}`;
-        
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
+
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
         error: detailedError
       }));
       return false;
     }
-  }, [state.isSupported, state.vapidKey, sessionId, requestPermission]);
+  }, [state.isSupported, state.vapidKey, requestPermission]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!state.isSupported || !sessionId) return false;
+    if (!state.isSupported) return false;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
-      
+
       if (subscription) {
         await subscription.unsubscribe();
       }
@@ -223,23 +225,23 @@ export function usePushNotifications(sessionId: string | null) {
       // Remove subscription from server
       await apiRequest('POST', '/api/push/unsubscribe', {});
 
-      setState(prev => ({ 
-        ...prev, 
-        isSubscribed: false, 
-        isLoading: false 
+      setState(prev => ({
+        ...prev,
+        isSubscribed: false,
+        isLoading: false
       }));
 
       return true;
     } catch (error: any) {
       console.error('Unsubscription failed:', error);
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error.message || 'Failed to unsubscribe from push notifications' 
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || 'Failed to unsubscribe from push notifications'
       }));
       return false;
     }
-  }, [state.isSupported, sessionId]);
+  }, [state.isSupported]);
 
   return {
     isSupported: state.isSupported,

@@ -16,10 +16,9 @@ interface SOSConfirmModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groups: GroupWithDetails[];
-  sessionId: string;
 }
 
-export function SOSConfirmModal({ open, onOpenChange, groups, sessionId }: SOSConfirmModalProps) {
+export function SOSConfirmModal({ open, onOpenChange, groups }: SOSConfirmModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { location, isLoading: locationLoading, getCurrentLocation } = useLocation();
