@@ -11,7 +11,7 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "pretest": "docker compose -f docker-compose.tests.yaml up -d",
-    "test": "cross-env NODE_ENV=test tsx test-member-count.ts",
+    "test": "cross-env NODE_ENV=test vitest run",
     "posttest": "docker compose -f docker-compose.tests.yaml down -v"
   },
   "dependencies": {
@@ -100,6 +100,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
+    "vitest": "^3.0.0",
     "drizzle-kit": "^0.30.4",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",

@@ -100,6 +100,7 @@ export async function teardownTestEnvironment() {
 
   // Close database connections to ensure all operations complete
   try {
+    const { db } = await import('../server/db.js');
     if ((db as any).$client) {
       // Local postgres-js connection
       await (db as any).$client.end();
