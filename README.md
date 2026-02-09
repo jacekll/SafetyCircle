@@ -204,6 +204,22 @@ Preferred communication style: Simple, everyday language.
 - ESBuild for production bundling
 - PostCSS with Tailwind and Autoprefixer
 
+## Running Tests
+
+Tests run against a local PostgreSQL instance managed by Docker Compose.
+
+```bash
+# Run the full test suite (starts DB, runs tests, tears down DB):
+npm test
+
+# Or run each step manually:
+docker compose -f docker-compose.tests.yaml up -d   # Start test DB
+cross-env NODE_ENV=test tsx test-member-count.ts     # Run tests
+docker compose -f docker-compose.tests.yaml down -v  # Tear down test DB
+```
+
+The test database configuration is defined in `.env.test` and `docker-compose.tests.yaml`.
+
 ## Deployment Strategy
 
 ### Development Environment

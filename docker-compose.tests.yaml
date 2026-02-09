@@ -1,3 +1,4 @@
+name: safetycircle_tests
 services:
   db_tests:
     image: postgres
