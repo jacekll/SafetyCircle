@@ -204,6 +204,24 @@ Preferred communication style: Simple, everyday language.
 - ESBuild for production bundling
 - PostCSS with Tailwind and Autoprefixer
 
+## Local Development
+
+The dev server requires a local PostgreSQL instance managed by Docker Compose.
+
+```bash
+# First-time setup: create your .env file and fill in the details
+cp .env.example .env
+
+# Start the database and dev server:
+npm run dev
+
+# Or run each step manually:
+docker-compose up -d        # Start the database
+tsx server/index.ts          # Start the dev server
+```
+
+The database configuration is defined in `.env` and `docker-compose.yaml`.
+
 ## Running Tests
 
 Tests run against a local PostgreSQL instance managed by Docker Compose.
