@@ -9,11 +9,6 @@ Built with **Replit** to try it out and try out **Progressive Web App (PWA)** ca
 
 <img width="446" height="902" src="https://github.com/jacekll/SafetyCircle/blob/main/docs%2FScreenshot.png">
 
-
-## User Preferences
-
-Preferred communication style: Simple, everyday language.
-
 ## Project Status
 
 **Current State**: SOS emergency alert application PoC with rich feature set
